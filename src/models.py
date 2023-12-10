@@ -1,10 +1,10 @@
 import torch
 import torch.nn as nn
 
-class MatrixFactorizationModel(nn.Module):
+class MatrixFactorizationRMSEModel(nn.Module):
     
     def __init__(self, user_count, item_count, embed_size=40):
-        super(MatrixFactorizationModel, self).__init__()
+        super(MatrixFactorizationRMSEModel, self).__init__()
         
         # MemoryEmbed
         self.user_memory = nn.Embedding(user_count, embed_size)
@@ -12,7 +12,7 @@ class MatrixFactorizationModel(nn.Module):
         # ItemMemory
         self.item_memory = nn.Embedding(item_count, embed_size)
 
-    def forward(self, userids, itemids):
+    def _forward(self, userids, itemids):
         # [batch, embedding size]
         user_vec = self.user_memory(userids)
 
@@ -23,30 +23,56 @@ class MatrixFactorizationModel(nn.Module):
 
         return torch.sum(pred_r, dim=1)
 
-    def criterion(self, r, pred_r):
+    def criterion(self, batch, pred_r):
         """
         Calculate RMSE loss
         """
-        return torch.sqrt(torch.mean((r-pred_r)**2))
+        ratings = batch[:, 2]
+        return torch.sqrt(torch.mean((ratings-pred_r)**2))
+    
+    def forward(self, batch):
+        userids = batch[:, 0]
+        itemids = batch[:, 1]
+
+        return self._forward(userids, itemids)
+    
+    def run_eval(self, batch):
+        userids = batch[:, 0]
+        itemids = batch[:, 1]
+
+        return self._forward(userids, itemids)
     
 class MatrixFactorizationBPRModel(nn.Module):
     
     def __init__(self, user_count, item_count, embed_size=40):
         super(MatrixFactorizationBPRModel, self).__init__()
         
-        self.mfmodel = MatrixFactorizationModel(user_count, item_count, embed_size)
+        self.basemodel = MatrixFactorizationRMSEModel(user_count, item_count, embed_size)
         self.sig = nn.Sigmoid()
 
-    def forward(self, userids, pos_itemids, neg_itemids):
-        pos_r = self.mfmodel(userids, pos_itemids)
-        neg_r = self.mfmodel(userids, neg_itemids)
+    def _forward(self, userids, pos_itemids, neg_itemids):
+        pos_r = self.basemodel._forward(userids, pos_itemids)
+        neg_r = self.basemodel._forward(userids, neg_itemids)
 
         diff = pos_r - neg_r
 
         return diff
 
-    def criterion(self, vals):
+    def criterion(self, _, vals):
         """
         Calculate BPR loss
         """
         return (1.0 - self.sig(vals)).pow(2).sum()
+    
+    def forward(self, batch):
+        userids = batch[:, 0]
+        pos_itemids = batch[:, 1]
+        neg_itemids = batch[:, 2]
+
+        return self._forward(userids, pos_itemids, neg_itemids)
+    
+    def run_eval(self, batch):
+        userids = batch[:, 0]
+        itemids = batch[:, 1]
+
+        return self.basemodel._forward(userids, itemids)
