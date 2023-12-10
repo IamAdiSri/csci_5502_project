@@ -3,12 +3,7 @@ import torch.nn as nn
 
 class MatrixFactorizationModel(nn.Module):
     
-    def __init__(self, user_count, item_count, embed_size=800):
-        """
-        Constructs the user/item memories and user/item external memory/outputs
-
-        Also add the embedding lookups
-        """
+    def __init__(self, user_count, item_count, embed_size=40):
         super(MatrixFactorizationModel, self).__init__()
         
         # MemoryEmbed
@@ -18,9 +13,6 @@ class MatrixFactorizationModel(nn.Module):
         self.item_memory = nn.Embedding(item_count, embed_size)
 
     def forward(self, userids, itemids):
-        """
-        Construct the model; main part of it goes here
-        """
         # [batch, embedding size]
         user_vec = self.user_memory(userids)
 
@@ -36,3 +28,25 @@ class MatrixFactorizationModel(nn.Module):
         Calculate RMSE loss
         """
         return torch.sqrt(torch.mean((r-pred_r)**2))
+    
+class MatrixFactorizationBPRModel(nn.Module):
+    
+    def __init__(self, user_count, item_count, embed_size=40):
+        super(MatrixFactorizationBPRModel, self).__init__()
+        
+        self.mfmodel = MatrixFactorizationModel(user_count, item_count, embed_size)
+        self.sig = nn.Sigmoid()
+
+    def forward(self, userids, pos_itemids, neg_itemids):
+        pos_r = self.mfmodel(userids, pos_itemids)
+        neg_r = self.mfmodel(userids, neg_itemids)
+
+        diff = pos_r - neg_r
+
+        return diff
+
+    def criterion(self, vals):
+        """
+        Calculate BPR loss
+        """
+        return (1.0 - self.sig(vals)).pow(2).sum()

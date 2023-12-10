@@ -83,3 +83,19 @@ class Dataset:
     def test_generator(self):
         for u, [pi, nis] in self.test.items():
             yield u, pi, nis
+
+class PairwiseDataset(Dataset):        
+    def make_train_test(self):
+        for u in self.user_item:
+            leave_out = self.sample_positive(u)
+            for i in self.user_item[u]:
+                self.train.append((u, i, self.sample_negative(u)))
+            self.test[u] = [leave_out, [self.sample_negative(u) for _ in range(100)]]
+
+        self.train = np.array(self.train)
+
+        self.train_size = len(self.train)
+        self.test_size = len(self.test)
+        self.train_idx = np.arange(self.train_size)
+        np.random.shuffle(self.train_idx)
+        
