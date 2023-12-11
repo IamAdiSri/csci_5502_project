@@ -57,15 +57,12 @@ class Dataset:
             i = random.choice(tuple(self.item_user.keys()))
         return i
         
-    def make_train_test(self, neg_count=4):
+    def make_train_test(self):
         for u in self.user_item:
             leave_out = self.sample_positive(u)
             for i in self.user_item[u]:
                 if i != leave_out:
                     self.train.append((u, i, 1))
-            
-            for i in self.user_item[u]:
-                for _ in range(neg_count):
                     self.train.append((u, self.sample_negative(u), 0))
 
             self.test[u] = [leave_out, [self.sample_negative(u) for _ in range(100)]]
