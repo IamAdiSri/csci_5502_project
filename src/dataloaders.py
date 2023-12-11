@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import random
 
-class Dataset:
+class Dataset100k:
     def __init__(self, dir):
         self.dataframe = self.load_dataframe(dir)
 
@@ -81,7 +81,36 @@ class Dataset:
         for u, [pi, nis] in self.test.items():
             yield u, pi, nis
 
-class PairwiseDataset(Dataset):        
+class Dataset1m(Dataset100k):
+    def load_dataframe(self, dir):
+        data = pd.read_csv(os.path.join(dir, "ratings.dat"), delimiter="::", header=None)
+        data.columns = ["user", "item", "score", "timestamp"]
+
+        item = pd.read_csv(os.path.join(dir, "movies.dat"), delimiter="::", encoding = "ISO-8859-1", header=None)
+        item.columns = ['movie id','movie title','genre']
+
+        user = pd.read_csv(os.path.join(dir, "users.dat"), delimiter="::", header=None)
+        user.columns = ['user id', 'gender', 'age', 'occupation', 'zip code']
+
+        data = data.join(user.set_index('user id'), on='user').join(item.set_index('movie id'), on='item')
+        return(data)
+
+class PairwiseDataset100k(Dataset100k):        
+    def make_train_test(self):
+        for u in self.user_item:
+            leave_out = self.sample_positive(u)
+            for i in self.user_item[u]:
+                self.train.append((u, i, self.sample_negative(u)))
+            self.test[u] = [leave_out, [self.sample_negative(u) for _ in range(100)]]
+
+        self.train = np.array(self.train)
+
+        self.train_size = len(self.train)
+        self.test_size = len(self.test)
+        self.train_idx = np.arange(self.train_size)
+        np.random.shuffle(self.train_idx)
+
+class PairwiseDataset1m(Dataset1m):        
     def make_train_test(self):
         for u in self.user_item:
             leave_out = self.sample_positive(u)
