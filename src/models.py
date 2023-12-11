@@ -8,9 +8,11 @@ class MatrixFactorizationRMSEModel(nn.Module):
         
         # MemoryEmbed
         self.user_memory = nn.Embedding(user_count, embed_size)
+        self.user_memory.weight.data.uniform_(-0.005, 0.005)
 
         # ItemMemory
         self.item_memory = nn.Embedding(item_count, embed_size)
+        self.item_memory.weight.data.uniform_(-0.005, 0.005)
 
     def _forward(self, userids, itemids):
         # [batch, embedding size]

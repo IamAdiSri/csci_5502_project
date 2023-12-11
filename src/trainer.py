@@ -16,7 +16,7 @@ class Trainer:
         self.train_log = []
         self.test_log = []
 
-    def train(self, evaluate=False):
+    def train(self, evaluate=False, verbose=True, progressbar=True):
         self.model.train()
         self.model.zero_grad()
 
@@ -29,7 +29,8 @@ class Trainer:
                     self.dataset.train_size//self.batch_size + 
                     (1 if self.dataset.train_size % self.batch_size > 0 else 0)
                 ),
-                leave=False
+                leave=False,
+                disable=not progressbar
             )
             
             for batch in pbar:
@@ -49,20 +50,21 @@ class Trainer:
             
             pbar.reset()
             mean_epoch_loss = np.mean(epoch_losses)
-            print("Epoch {}: Avg Loss/Batch {:<20,.6f}".format(epoch, mean_epoch_loss))
+            if verbose:
+                print("Epoch {}: Avg Loss/Batch {:<20,.6f}".format(epoch, mean_epoch_loss))
             
             self.train_log.append(mean_epoch_loss)
 
             if evaluate:
-                self.test()
+                self.test(verbose=verbose, progressbar=progressbar)
 
-    def test(self):
+    def test(self, verbose=True, progressbar=True):
         self.model.zero_grad()
         self.model.eval()
 
         preds = []
         with torch.no_grad():
-            pbar = tqdm(self.dataset.test_generator(), total=self.dataset.test_size, leave=False)
+            pbar = tqdm(self.dataset.test_generator(), total=self.dataset.test_size, leave=False, disable=not progressbar)
 
             for uid, pos_iid, neg_iids in pbar:
                 batch = list(zip([uid]*101, neg_iids+[pos_iid], [0]*100+[1]))
@@ -78,6 +80,7 @@ class Trainer:
             args = self.metrics[m][1]
             result = func(preds, **args)
             compiled[m] = result
-            print(f"{m}: {result}")
+            if verbose:
+                print(f"{m}: {result}")
 
         self.test_log.append(compiled)
