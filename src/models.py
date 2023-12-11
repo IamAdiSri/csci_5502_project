@@ -132,7 +132,7 @@ class MLPBCEModel(MatrixFactorizationRMSEModel):
 
         self.bce = nn.BCELoss()
 
-        self.initialize_weights()
+        # self.initialize_weights()
 
     def initialize_weights(self):
         for param in self.state_dict():
