@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def hitratio(ratings, top_n=10):
     hr = 0.0
     for r in ratings:
@@ -9,7 +10,8 @@ def hitratio(ratings, top_n=10):
         if pos_index in arg_index:
             # increment
             hr += 1
-    return hr/len(ratings)
+    return hr / len(ratings)
+
 
 def ndcg(ratings, top_n=10):
     ndcg = 0.0
@@ -20,4 +22,4 @@ def ndcg(ratings, top_n=10):
         if pos_index in arg_index:
             # get the position
             ndcg += np.log(2.0) / np.log(arg_index.tolist().index(pos_index) + 2.0)
-    return ndcg/len(ratings)
+    return ndcg / len(ratings)

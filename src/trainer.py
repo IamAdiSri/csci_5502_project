@@ -1,10 +1,12 @@
-# from tqdm.auto import tqdm
-from tqdm import tqdm
 import numpy as np
 import torch
+from tqdm import tqdm
+
 
 class Trainer:
-    def __init__(self, dataset, model, optimizer, metrics, epochs=10, batch_size=32, device='cpu'):
+    def __init__(
+        self, dataset, model, optimizer, metrics, epochs=10, batch_size=32, device="cpu"
+    ):
         self.dataset = dataset
         self.model = model.to(device)
         self.optimizer = optimizer
@@ -12,7 +14,7 @@ class Trainer:
         self.batch_size = batch_size
         self.device = device
         self.metrics = metrics
-        
+
         self.train_log = []
         self.test_log = []
 
@@ -23,16 +25,16 @@ class Trainer:
         for epoch in range(self.epochs):
             epoch_losses = []
             pbar = tqdm(
-                self.dataset.train_generator(self.batch_size), 
-                dynamic_ncols=True, 
+                self.dataset.train_generator(self.batch_size),
+                dynamic_ncols=True,
                 total=(
-                    self.dataset.train_size//self.batch_size + 
-                    (1 if self.dataset.train_size % self.batch_size > 0 else 0)
+                    self.dataset.train_size // self.batch_size
+                    + (1 if self.dataset.train_size % self.batch_size > 0 else 0)
                 ),
                 leave=False,
-                disable=not progressbar
+                disable=not progressbar,
             )
-            
+
             for batch in pbar:
                 self.optimizer.zero_grad()
 
@@ -46,13 +48,15 @@ class Trainer:
                 self.optimizer.step()
 
                 epoch_losses.append(loss.item())
-                pbar.set_description(u"[{}] Loss: {:,.4f}\t".format(epoch, loss.item()))
-            
+                pbar.set_description("[{}] Loss: {:,.4f}\t".format(epoch, loss.item()))
+
             pbar.reset()
             mean_epoch_loss = np.mean(epoch_losses)
             if verbose:
-                print("Epoch {}: Avg Loss/Batch {:<20,.6f}".format(epoch, mean_epoch_loss))
-            
+                print(
+                    "Epoch {}: Avg Loss/Batch {:<20,.6f}".format(epoch, mean_epoch_loss)
+                )
+
             self.train_log.append(mean_epoch_loss)
 
             if evaluate:
@@ -64,10 +68,15 @@ class Trainer:
 
         preds = []
         with torch.no_grad():
-            pbar = tqdm(self.dataset.test_generator(), total=self.dataset.test_size, leave=False, disable=not progressbar)
+            pbar = tqdm(
+                self.dataset.test_generator(),
+                total=self.dataset.test_size,
+                leave=False,
+                disable=not progressbar,
+            )
 
             for uid, pos_iid, neg_iids in pbar:
-                batch = list(zip([uid]*101, neg_iids+[pos_iid], [0]*100+[1]))
+                batch = list(zip([uid] * 101, neg_iids + [pos_iid], [0] * 100 + [1]))
                 batch = torch.LongTensor(batch).to(self.device)
 
                 preds.append(self.model.run_eval(batch).cpu().numpy())
